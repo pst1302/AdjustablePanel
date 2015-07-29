@@ -15,15 +15,14 @@ namespace AdjustableWindows
         // 현재 컬럼 개수
         int ColNum = 1;
 
-        Boolean sizeLock = false;
-        Boolean colChangeLock = false;
-
         const int INVISIBLE = -1000000000;
-        const int ITEMS = 100;
+        const int ITEMS = 1000;
 
         // 기본 높이 설정
         int defaultHeight = 200;
+
         int curIndex = 0;
+        int valOfScroll = 0;
 
         Point[] locations = new Point[ITEMS];
 
@@ -53,36 +52,23 @@ namespace AdjustableWindows
 
         private void LocationRefresh(Panel parent , int Col)
         {
-            /* 행 변경하는 이벤트 중에 사이즈를 조정하는 이벤트가 계속 발생하기 때문에 Lock을 걸어주는 부분
-             * 
-             */
-            if (colChangeLock == false)
-            {
-                //parent.VerticalScroll.Value = 0;
-                //setControlsLocation(parent,Col);
-                initLocation(parent, Col);
-                postLocations(parent, Col);
-            }
+            initLocation(parent, Col);
+            postLocations(parent, Col);
         }
 
         private void SizeChangeLocationRefresh(Panel parent , int Col)
         {
-            //colChangeLock = true;
-            //isSize = true;
-            if (sizeLock == false)
-            {
-                //setControlsLocation(parent, Col);
-                initLocation(parent, Col);
-                postLocations(parent, Col);
-            }
-           // colChangeLock = false;
-            //isSize = false;
-            
+            initLocation(parent, Col);
+            postLocations(parent, Col);
         }
 
-        private void scrollChangeLocationRefresh(Panel parent, int Col)
+        private void scrollChangeLocationRefresh(Panel parent, int Col,int scrollMove)
         {
-            //setControlsLocation(parent, Col);
+            valOfScroll += scrollMove;
+            if (valOfScroll > 210)
+            {
+                valOfScroll -= 210;
+            }
             initLocation(parent, Col);
             postLocations(parent, Col);
         }
@@ -183,7 +169,6 @@ namespace AdjustableWindows
          * *************************************************************************************************************************************
         */
 
-
         private void initLocation(Panel parent,int Col)
         {
             int location_x = 0;
@@ -197,18 +182,27 @@ namespace AdjustableWindows
 
             int j = 0;
 
-            for (int i = curIndex; i < locations.Length; i++)
+            int maxCtrInDisplay = (parent.Height / heightUnit) * Col * 8 ;
+
+            if (curIndex <= 0)
+            {
+                curIndex = 0;
+            }
+
+            if (maxCtrInDisplay >= ITEMS)
+            {
+                maxCtrInDisplay = ITEMS;
+            }
+
+            for (int i = curIndex; i < maxCtrInDisplay; i++)
             {
                 locations[i] = new Point(location_x, location_y - Math.Abs(parent.AutoScrollPosition.Y));
 
-                // 전달 받은 행의 갯수만큼 오른쪽으로 위치 변경
                 if (j < Col - 1)
                 {
-                    // 한개 컨트롤의 너비 + 마진 다음 컨트롤의 위치
                     location_x += widthUnit;
                     j++;
                 }
-                // 전달 받은 행만큼 오른쪽으로 이동하면 다음줄로 넘어감
                 else
                 {
                     location_x = 0;
@@ -226,23 +220,34 @@ namespace AdjustableWindows
             int widthUnit = width / Col;
             int heightUnit = defaultHeight + parent.Controls[0].Margin.Bottom;
 
-            for (int i = 0; i < parent.Controls.Count; i++)
+            int maxCtrInDisplay = (parent.Height / heightUnit) * Col * 8;
+
+            if (curIndex <= 0)
+            {
+                curIndex = 0;
+            }
+
+            if (maxCtrInDisplay >= ITEMS - 1)
+            {
+                maxCtrInDisplay = ITEMS - 1;
+            }
+
+            parent.Controls[0].Location = locations[0];
+
+            for (int i = curIndex; i < maxCtrInDisplay; i++)
             {
                 Control SubItem = parent.Controls[i];
 
                 if (locations[i].Y < (0 - parent.Height))
                 {
                     locations[i].Y = INVISIBLE;
+                    curIndex = i + 1;
                 }
 
                 if (locations[i].Y >= (parent.Height * 2))
                 {
                     locations[i].Y = INVISIBLE;
                     SubItem.Location = locations[i];
-                    for (int j = i; j < locations.Length; j++)
-                    {
-                        locations[j].Y = INVISIBLE;
-                    }
                     break;
                 }
                 SubItem.Location = locations[i];
@@ -251,20 +256,7 @@ namespace AdjustableWindows
                 SubItem.Height = heightUnit - (SubItem.Margin.Bottom * 2);
             }
         }
-
-        // 컨트롤의 Height 변경
-        private void setContorlsHeight(Panel parent, int size)
-        {
-            if (parent.Controls.Count == 0)
-                return;
-
-            for (int i = 0; i < parent.Controls.Count; i++)
-            {
-                defaultHeight = size;
-            }
-            LocationRefresh(parent, ColNum);
-        }
-     
+    
         // cbm열 변경시 호출되는 이벤트
         private void cbmCol_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -286,12 +278,12 @@ namespace AdjustableWindows
 
         private void panView_ScrollChanged(object sender, ScrollEventArgs e)
         {
-            //scrollChangeLocationRefresh((Panel)sender, ColNum);
+            scrollChangeLocationRefresh((Panel)sender, ColNum,e.NewValue-e.OldValue);
         }
 
         private void panView_WheelChanged(object sender, MouseEventArgs e)
         {
-            scrollChangeLocationRefresh((Panel)sender, ColNum);
+            scrollChangeLocationRefresh((Panel)sender, ColNum,Math.Abs(e.Delta));
         }
     }
 }
