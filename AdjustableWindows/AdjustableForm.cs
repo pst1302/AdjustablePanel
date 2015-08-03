@@ -16,15 +16,25 @@ namespace AdjustableWindows
         int ColNum = 1;
 
         const int INVISIBLE = -1000000000;
-        const int ITEMS = 1000;
+        const int ITEMS = 100;
 
         // 기본 높이 설정
         int defaultHeight = 200;
 
-        int curIndex = 0;
-        int valOfScroll = 0;
-
         Point[] locations = new Point[ITEMS];
+
+        int curIndex = 0;
+
+        private struct indexAndRemain
+        {
+            public int index, remain;
+
+            public indexAndRemain(int index, int remain)
+            {
+                this.index = index;
+                this.remain = remain;
+            }
+        }
 
         public AdjustableForm()
         {
@@ -52,24 +62,21 @@ namespace AdjustableWindows
 
         private void LocationRefresh(Panel parent , int Col)
         {
-            initLocation(parent, Col);
+            parent.AutoScrollPosition = new Point(0, 0);
+            calculateEntirePanel(parent, Col);
+            //initLocation(parent, Col);
             postLocations(parent, Col);
         }
 
         private void SizeChangeLocationRefresh(Panel parent , int Col)
         {
-            initLocation(parent, Col);
+            calculateEntirePanel(parent, Col);
+            //initLocation(parent, Col);
             postLocations(parent, Col);
         }
 
         private void scrollChangeLocationRefresh(Panel parent, int Col,int scrollMove)
         {
-            valOfScroll += scrollMove;
-            if (valOfScroll > 210)
-            {
-                valOfScroll -= 210;
-            }
-            initLocation(parent, Col);
             postLocations(parent, Col);
         }
 
@@ -169,6 +176,60 @@ namespace AdjustableWindows
          * *************************************************************************************************************************************
         */
 
+        private int calculateEntirePanel(Panel parent, int Col)
+        {
+            int entirePanel;
+
+            entirePanel = Convert.ToInt32(Math.Ceiling((double)(defaultHeight + parent.Controls[0].Margin.Bottom) * parent.Controls.Count) / Col);
+
+            parent.AutoScrollMinSize = new Size(0, entirePanel);
+
+            return entirePanel;
+        }
+        
+        private indexAndRemain calculateCurIndex(Panel parent, int Col)
+        {
+            int curPosIndex;
+            int remainHeight;
+
+            remainHeight = (Math.Abs(parent.AutoScrollPosition.Y) % (defaultHeight + parent.Controls[0].Margin.Bottom));
+
+            if (remainHeight != 0)
+            {
+                curPosIndex = (Math.Abs(parent.AutoScrollPosition.Y) / (defaultHeight + parent.Controls[0].Margin.Bottom) * Col) + 1;
+            }
+            else
+            {
+                curPosIndex = (Math.Abs(parent.AutoScrollPosition.Y) / (defaultHeight + parent.Controls[0].Margin.Bottom) * Col);
+            }
+
+            indexAndRemain result = new indexAndRemain(curPosIndex, remainHeight);
+
+            return result;
+        }
+
+        private int calculateHowMuchPaint(Panel parent, int Col)
+        {
+            return Convert.ToInt32(Math.Ceiling((double)(parent.Height * 2) / (defaultHeight + parent.Controls[0].Margin.Bottom) * Col));
+        }
+        
+        private int howToChanged(Panel parent, int Col)
+        {
+            int newIndex;
+
+            newIndex = calculateCurIndex(parent,Col).index;
+
+            return newIndex - curIndex;
+        }
+
+        private int calculateMaxIndex(int index)
+        {
+            if (index >= ITEMS)
+                return ITEMS;
+            else
+                return index;
+        }
+        /*
         private void initLocation(Panel parent,int Col)
         {
             int location_x = 0;
@@ -182,6 +243,8 @@ namespace AdjustableWindows
 
             int j = 0;
 
+            int curPos = parent.AutoScrollPosition.Y;
+
             int maxCtrInDisplay = (parent.Height / heightUnit) * Col * 8 ;
 
             if (curIndex <= 0)
@@ -194,7 +257,7 @@ namespace AdjustableWindows
                 maxCtrInDisplay = ITEMS;
             }
 
-            for (int i = curIndex; i < maxCtrInDisplay; i++)
+            for (int i = 0; i < locations.Length; i++)
             {
                 locations[i] = new Point(location_x, location_y - Math.Abs(parent.AutoScrollPosition.Y));
 
@@ -211,7 +274,7 @@ namespace AdjustableWindows
                 }
             }
         }
-
+        */
         private void postLocations(Panel parent, int Col)
         {
 
@@ -220,40 +283,77 @@ namespace AdjustableWindows
             int widthUnit = width / Col;
             int heightUnit = defaultHeight + parent.Controls[0].Margin.Bottom;
 
-            int maxCtrInDisplay = (parent.Height / heightUnit) * Col * 8;
+            int maxCtrInDisplay;
 
-            if (curIndex <= 0)
+            //int curIndex;
+            int curRemain;
+
+            for (int i = curIndex; i < calculateMaxIndex(curIndex + howToChanged(parent, Col)); i++)
             {
-                curIndex = 0;
+                Control subItem = parent.Controls[i];
+
+                subItem.Location = new Point(0, INVISIBLE);
             }
 
-            if (maxCtrInDisplay >= ITEMS - 1)
-            {
-                maxCtrInDisplay = ITEMS - 1;
-            }
+            indexAndRemain ir = calculateCurIndex(parent, Col);
+            curIndex = ir.index;
+            curRemain = ir.remain;
+            maxCtrInDisplay = calculateHowMuchPaint(parent,Col);
 
-            parent.Controls[0].Location = locations[0];
+            reArrangeControls(parent,Col,widthUnit,heightUnit,curIndex, curRemain, maxCtrInDisplay);
 
-            for (int i = curIndex; i < maxCtrInDisplay; i++)
+            /*int location_y = -curRemain;
+            int location_x = 0;
+
+            for (int i = curIndex ; i < calculateMaxIndex(curIndex + maxCtrInDisplay); i++)
             {
                 Control SubItem = parent.Controls[i];
 
-                if (locations[i].Y < (0 - parent.Height))
-                {
-                    locations[i].Y = INVISIBLE;
-                    curIndex = i + 1;
-                }
-
-                if (locations[i].Y >= (parent.Height * 2))
-                {
-                    locations[i].Y = INVISIBLE;
-                    SubItem.Location = locations[i];
-                    break;
-                }
-                SubItem.Location = locations[i];
+                SubItem.Location = new Point(location_x, location_y);
 
                 SubItem.Width = widthUnit - (SubItem.Margin.Left * 2);
                 SubItem.Height = heightUnit - (SubItem.Margin.Bottom * 2);
+
+                if (j < Col - 1)
+                {
+                    location_x += widthUnit;
+                    j++;
+                }
+                else
+                {
+                    location_x = 0;
+                    location_y += heightUnit;
+                    j = 0;
+                }
+            }*/
+        }
+
+        private void reArrangeControls(Panel parent,int Col,int widthUnit,int heightUnit,int curIndex,int curRemain,int maxCtrInDisplay) 
+        {
+            int location_y = -curRemain;
+            int location_x = 0;
+            int j = 0;
+
+            for (int i = curIndex; i < calculateMaxIndex(curIndex + maxCtrInDisplay); i++)
+            {
+                Control SubItem = parent.Controls[i];
+
+                SubItem.Location = new Point(location_x, location_y);
+
+                SubItem.Width = widthUnit - (SubItem.Margin.Left * 2);
+                SubItem.Height = heightUnit - (SubItem.Margin.Bottom * 2);
+
+                if (j < Col - 1)
+                {
+                    location_x += widthUnit;
+                    j++;
+                }
+                else
+                {
+                    location_x = 0;
+                    location_y += heightUnit;
+                    j = 0;
+                }
             }
         }
     
@@ -278,7 +378,7 @@ namespace AdjustableWindows
 
         private void panView_ScrollChanged(object sender, ScrollEventArgs e)
         {
-            scrollChangeLocationRefresh((Panel)sender, ColNum,e.NewValue-e.OldValue);
+            //scrollChangeLocationRefresh((Panel)sender, ColNum,e.NewValue-e.OldValue);
         }
 
         private void panView_WheelChanged(object sender, MouseEventArgs e)
