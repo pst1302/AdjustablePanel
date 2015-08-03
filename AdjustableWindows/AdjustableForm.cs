@@ -16,7 +16,7 @@ namespace AdjustableWindows
         int ColNum = 1;
 
         const int INVISIBLE = -1000000000;
-        const int ITEMS = 100;
+        const int ITEMS = 1000;
 
         // 기본 높이 설정
         int defaultHeight = 200;
@@ -64,6 +64,7 @@ namespace AdjustableWindows
             for (int i = 0; i < ITEMS; i++)
             {
                 Button SampleData = new Button();
+                SampleData.Click += clickedButton;
                 SampleData.Text = (i + 1).ToString();
                 SampleData.Margin = new Padding(10);
                 SampleData.Location = new Point(0, INVISIBLE);
@@ -86,7 +87,7 @@ namespace AdjustableWindows
         {
             colChanged = true;
 
-            //parent.AutoScrollPosition = new Point(0, 0);
+            parent.AutoScrollPosition = new Point(0, 0);
             if (resized == false && scrolled == false)
             {
                 calculateEntirePanel(parent, Col);
@@ -111,7 +112,7 @@ namespace AdjustableWindows
             scrolled = true;
             if (resized == false && colChanged == false)
             {
-                calculateEntirePanel(parent, Col);
+                //calculateEntirePanel(parent, Col);
                 postLocations(parent, Col);
             }
             scrolled = false;
@@ -135,15 +136,12 @@ namespace AdjustableWindows
 
             remainHeight = (Math.Abs(parent.AutoScrollPosition.Y) % (defaultHeight + parent.Controls[0].Margin.Bottom));
 
-            //if (remainHeight != 0)
-            //{
-                curPosIndex = (Math.Abs(parent.AutoScrollPosition.Y) / (defaultHeight + parent.Controls[0].Margin.Bottom) * Col);
-            //}
-                /*
-            else
-            {
-                curPosIndex = (Math.Abs(parent.AutoScrollPosition.Y) / (defaultHeight + parent.Controls[0].Margin.Bottom) * Col);
-            }*/
+            
+            curPosIndex = (Math.Abs(parent.AutoScrollPosition.Y) / (defaultHeight + parent.Controls[0].Margin.Bottom) * Col);
+       
+
+           if (curPosIndex < 0)
+                curPosIndex = 0;
 
             indexAndRemain result = new indexAndRemain(curPosIndex, remainHeight);
 
@@ -207,6 +205,8 @@ namespace AdjustableWindows
 
             reArrangeControls(parent,Col,widthUnit,heightUnit,curIndex, curRemain, maxCtrInDisplay);
 
+            parent.Controls[calculateMaxIndex(curIndex + Col)].Focus();
+
             removedIndex.start = curIndex;
             removedIndex.end = curIndex + maxCtrInDisplay;
         }
@@ -261,7 +261,7 @@ namespace AdjustableWindows
 
         private void panView_ScrollChanged(object sender, ScrollEventArgs e)
         {
-            //scrollChangeLocationRefresh((Panel)sender, ColNum,e.NewValue-e.OldValue);
+            scrollChangeLocationRefresh((Panel)sender, ColNum,e.NewValue-e.OldValue);
         }
 
         private void panView_WheelChanged(object sender, MouseEventArgs e)
