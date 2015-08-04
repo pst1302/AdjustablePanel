@@ -31,13 +31,13 @@ namespace AdjustableWindows
          */
         int ColNum = 1;
 
-        const int INVISIBLE = -1000000000;
-        const int ITEMS = 100;
+        int INVISIBLE = -1000000000;
+        int items = 0;
 
         // 기본 높이 설정
         int defaultHeight = 200;
 
-        Point[] locations = new Point[ITEMS];
+        Point[] locations = new Point[1000];
 
         int curIndex;
 
@@ -199,8 +199,8 @@ namespace AdjustableWindows
          */
         private int calculateMaxIndex(int index)
         {
-            if (index >= ITEMS)
-                return ITEMS;
+            if (index >= items)
+                return items;
             else
                 return index;
         }
@@ -318,13 +318,16 @@ namespace AdjustableWindows
             item.Margin = new Padding(10);
             item.Location = new Point(0, INVISIBLE);
             this.Controls.Add(item);
+
+            LocationRefresh(this, ColNum);
+            items++;
         }
 
         public void setControlsHeight(int height)
         {
             this.defaultHeight = height;
 
-            LocationRefresh(this, col);
+            LocationRefresh(this, ColNum);
         }
     }
 }
