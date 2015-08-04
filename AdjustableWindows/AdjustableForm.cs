@@ -16,7 +16,7 @@ namespace AdjustableWindows
         int ColNum = 1;
 
         const int INVISIBLE = -1000000000;
-        const int ITEMS = 1000;
+        const int ITEMS = 100;
 
         // 기본 높이 설정
         int defaultHeight = 200;
@@ -31,6 +31,10 @@ namespace AdjustableWindows
 
         startIndexAndEndIndex removedIndex = new startIndexAndEndIndex(0,0);
 
+        /*
+         * ********************************************************** 구조체 선언부 **********************************************************
+         * 
+         */
         private struct indexAndRemain
         {
             public int index, remain;
@@ -52,7 +56,13 @@ namespace AdjustableWindows
                 this.end = end;
             }
         }
+        /*
+         ********************************************************** 구조체 선언 끝 ********************************************************** 
+         */
 
+        /*
+         ********************************************************** Form init() ************************************************************
+         */
         public AdjustableForm()
         {
             InitializeComponent();
@@ -64,7 +74,7 @@ namespace AdjustableWindows
             for (int i = 0; i < ITEMS; i++)
             {
                 Button SampleData = new Button();
-                SampleData.Click += clickedButton;
+                //SampleData.Click += clickedButton;
                 SampleData.Text = (i + 1).ToString();
                 SampleData.Margin = new Padding(10);
                 SampleData.Location = new Point(0, INVISIBLE);
@@ -77,17 +87,18 @@ namespace AdjustableWindows
             cbmCol.Text = ColNum.ToString();
         }
 
-
+        /*
+         ********************************************************** 이벤트 리스너 **********************************************************
+         */
         private void clickedButton(Object sender, EventArgs e)
         {
-            MessageBox.Show(((Button)sender).Text);
+            //removeAllControls((Panel)((Button)sender).Parent);
         }
 
         private void LocationRefresh(Panel parent , int Col)
         {
             colChanged = true;
 
-            parent.AutoScrollPosition = new Point(0, 0);
             if (resized == false && scrolled == false)
             {
                 calculateEntirePanel(parent, Col);
@@ -124,23 +135,29 @@ namespace AdjustableWindows
 
             entirePanel = Convert.ToInt32(Math.Ceiling((double)(defaultHeight + parent.Controls[0].Margin.Bottom) * parent.Controls.Count / Col));
 
+            parent.Refresh();
             parent.AutoScrollMinSize = new Size(0, entirePanel);
+
+            //parent.AutoScrollPosition = new Point(0, 0);
 
             return entirePanel;
         }
-        
+
+        /*
+         * ********************************************************** 현재 인덱스 계산 부분 **********************************************************
+         */
         private indexAndRemain calculateCurIndex(Panel parent, int Col)
         {
             int curPosIndex;
             int remainHeight;
 
+
             remainHeight = (Math.Abs(parent.AutoScrollPosition.Y) % (defaultHeight + parent.Controls[0].Margin.Bottom));
 
-            
             curPosIndex = (Math.Abs(parent.AutoScrollPosition.Y) / (defaultHeight + parent.Controls[0].Margin.Bottom) * Col);
        
 
-           if (curPosIndex < 0)
+            if (curPosIndex < 0)
                 curPosIndex = 0;
 
             indexAndRemain result = new indexAndRemain(curPosIndex, remainHeight);
@@ -148,11 +165,17 @@ namespace AdjustableWindows
             return result;
         }
 
+        /*
+         ********************************************************** 현재 인덱스부터 어디까지 그릴지 계산 하는 함수 **********************************************************
+         */
         private int calculateHowMuchPaint(Panel parent, int Col)
         {
             return Convert.ToInt32(Math.Ceiling((double)(parent.Height * 2) / (defaultHeight + parent.Controls[0].Margin.Bottom) * Col));
         }
-        
+
+        /*
+         ********************************************************** 다시 그릴지 계산하는 함수 ********************************************************** 
+         */
         private bool howToChanged(Panel parent, int Col)
         {
             int newIndex;
@@ -169,6 +192,9 @@ namespace AdjustableWindows
             }
         }
 
+        /*
+         * ********************************************************** 배열 인덱스 넘어가는지 확인해주는 함수 **********************************************************
+         */
         private int calculateMaxIndex(int index)
         {
             if (index >= ITEMS)
@@ -176,7 +202,10 @@ namespace AdjustableWindows
             else
                 return index;
         }
-  
+
+        /*
+         ********************************************************** 현재 인덱스 읽어서 지우고 다시 그리는 부분 **********************************************************
+         */
         private void postLocations(Panel parent, int Col)
         {
 
@@ -189,15 +218,17 @@ namespace AdjustableWindows
 
             int curRemain;
 
-            if (howToChanged(parent, Col) == true)
-            {
-                for (int i = removedIndex.start; i < calculateMaxIndex(removedIndex.end); i++)
-                {
-                    Control subItem = parent.Controls[i];
+            
 
-                    subItem.Location = new Point(0, INVISIBLE);
-                }
+            for (int i = removedIndex.start; i < calculateMaxIndex(removedIndex.end); i++)
+            {
+                Control subItem = parent.Controls[i];
+
+                subItem.Location = new Point(0, INVISIBLE);
             }
+            
+
+
             indexAndRemain ir = calculateCurIndex(parent, Col);
             curIndex = ir.index;
             curRemain = ir.remain;
@@ -205,27 +236,38 @@ namespace AdjustableWindows
 
             reArrangeControls(parent,Col,widthUnit,heightUnit,curIndex, curRemain, maxCtrInDisplay);
 
-            parent.Controls[calculateMaxIndex(curIndex + Col)].Focus();
+            //System.Diagnostics.Debug.WriteLine(parent.Controls.Count);
+
 
             removedIndex.start = curIndex;
             removedIndex.end = curIndex + maxCtrInDisplay;
         }
 
+
+        private void removeAllControls(Panel parent)
+        {
+            for (int i = 0; i < parent.Controls.Count; i++)
+                parent.Controls[i].Location = new Point(0, INVISIBLE);
+        }
+        /*
+         ********************************************************** 다시 그리는 코어 함수 **********************************************************
+         */
         private void reArrangeControls(Panel parent,int Col,int widthUnit,int heightUnit,int curIndex,int curRemain,int maxCtrInDisplay) 
         {
             int location_y = -curRemain;
             int location_x = 0;
             int j = 0;
-
+            
             for (int i = curIndex; i < calculateMaxIndex(curIndex + maxCtrInDisplay); i++)
             {
                 Control SubItem = parent.Controls[i];
 
                 SubItem.Location = new Point(location_x, location_y);
 
+
                 SubItem.Width = widthUnit - (SubItem.Margin.Left * 2);
                 SubItem.Height = heightUnit - (SubItem.Margin.Bottom * 2);
-
+                
                 if (j < Col - 1)
                 {
                     location_x += widthUnit;
@@ -238,6 +280,8 @@ namespace AdjustableWindows
                     j = 0;
                 }
             }
+
+            
         }
     
         // cbm열 변경시 호출되는 이벤트
@@ -261,7 +305,7 @@ namespace AdjustableWindows
 
         private void panView_ScrollChanged(object sender, ScrollEventArgs e)
         {
-            scrollChangeLocationRefresh((Panel)sender, ColNum,e.NewValue-e.OldValue);
+            //scrollChangeLocationRefresh((Panel)sender, ColNum,e.NewValue-e.OldValue);
         }
 
         private void panView_WheelChanged(object sender, MouseEventArgs e)
