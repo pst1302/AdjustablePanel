@@ -16,14 +16,14 @@ namespace AdjustableWindows
         int ColNum = 1;
 
         const int INVISIBLE = -1000000000;
-        const int ITEMS = 100;
+        const int ITEMS = 1000;
 
         // 기본 높이 설정
         int defaultHeight = 200;
 
         Point[] locations = new Point[ITEMS];
 
-        int curIndex = 0;
+        int curIndex;
 
         bool scrolled = false;
         bool colChanged = true;
@@ -99,6 +99,7 @@ namespace AdjustableWindows
         {
             colChanged = true;
 
+            parent.AutoScrollPosition = new Point(0, 0);
             if (resized == false && scrolled == false)
             {
                 calculateEntirePanel(parent, Col);
@@ -123,7 +124,7 @@ namespace AdjustableWindows
             scrolled = true;
             if (resized == false && colChanged == false)
             {
-                //calculateEntirePanel(parent, Col);
+                calculateEntirePanel(parent, Col);
                 postLocations(parent, Col);
             }
             scrolled = false;
@@ -155,7 +156,6 @@ namespace AdjustableWindows
             remainHeight = (Math.Abs(parent.AutoScrollPosition.Y) % (defaultHeight + parent.Controls[0].Margin.Bottom));
 
             curPosIndex = (Math.Abs(parent.AutoScrollPosition.Y) / (defaultHeight + parent.Controls[0].Margin.Bottom) * Col);
-       
 
             if (curPosIndex < 0)
                 curPosIndex = 0;
@@ -170,7 +170,8 @@ namespace AdjustableWindows
          */
         private int calculateHowMuchPaint(Panel parent, int Col)
         {
-            return Convert.ToInt32(Math.Ceiling((double)(parent.Height * 2) / (defaultHeight + parent.Controls[0].Margin.Bottom) * Col));
+            int howMuchPaint = Convert.ToInt32(Math.Ceiling((double)(parent.Height * 2) / (defaultHeight + parent.Controls[0].Margin.Bottom) * Col));
+            return howMuchPaint;
         }
 
         /*
@@ -218,13 +219,14 @@ namespace AdjustableWindows
 
             int curRemain;
 
-            
-
-            for (int i = removedIndex.start; i < calculateMaxIndex(removedIndex.end); i++)
+            if (howToChanged(parent, Col) == true)
             {
-                Control subItem = parent.Controls[i];
+                for (int i = removedIndex.start; i < calculateMaxIndex(removedIndex.end); i++)
+                {
+                    Control subItem = parent.Controls[i];
 
-                subItem.Location = new Point(0, INVISIBLE);
+                    subItem.Location = new Point(0, INVISIBLE);
+                }
             }
             
 
@@ -236,9 +238,7 @@ namespace AdjustableWindows
 
             reArrangeControls(parent,Col,widthUnit,heightUnit,curIndex, curRemain, maxCtrInDisplay);
 
-            //System.Diagnostics.Debug.WriteLine(parent.Controls.Count);
-
-
+            
             removedIndex.start = curIndex;
             removedIndex.end = curIndex + maxCtrInDisplay;
         }
@@ -257,13 +257,15 @@ namespace AdjustableWindows
             int location_y = -curRemain;
             int location_x = 0;
             int j = 0;
-            
-            for (int i = curIndex; i < calculateMaxIndex(curIndex + maxCtrInDisplay); i++)
+
+            parent.Controls[curIndex].Location = new Point(location_x, location_y);
+
+            parent.Controls[curIndex].Width = widthUnit - (parent.Controls[curIndex].Margin.Left * 2);
+            parent.Controls[curIndex].Height = heightUnit - (parent.Controls[curIndex].Margin.Bottom * 2);
+
+            for (int i = curIndex + 1; i < calculateMaxIndex(curIndex + maxCtrInDisplay); i++)
             {
                 Control SubItem = parent.Controls[i];
-
-                SubItem.Location = new Point(location_x, location_y);
-
 
                 SubItem.Width = widthUnit - (SubItem.Margin.Left * 2);
                 SubItem.Height = heightUnit - (SubItem.Margin.Bottom * 2);
@@ -279,6 +281,8 @@ namespace AdjustableWindows
                     location_y += heightUnit;
                     j = 0;
                 }
+
+                SubItem.Location = new Point(location_x, location_y);
             }
 
             
@@ -305,7 +309,7 @@ namespace AdjustableWindows
 
         private void panView_ScrollChanged(object sender, ScrollEventArgs e)
         {
-            //scrollChangeLocationRefresh((Panel)sender, ColNum,e.NewValue-e.OldValue);
+            scrollChangeLocationRefresh((Panel)sender, ColNum,e.NewValue-e.OldValue);
         }
 
         private void panView_WheelChanged(object sender, MouseEventArgs e)
