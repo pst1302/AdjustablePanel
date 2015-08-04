@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -10,9 +8,27 @@ using System.Windows.Forms;
 
 namespace AdjustableWindows
 {
-    public partial class AdjustableForm : Form
+
+
+    /*
+     * ColumnGridPanel 설명
+     * 
+     * 행의 갯수를 조절할 수 있는 방식의 Panel 
+     * 
+     * 사용할 수 있는 메소드
+     * col_Changed(int col) -> 행의 개수 변경
+     * input_Control(Control item) -> 컨트롤 넣기
+     * setControlsHeight(int height) -> 컨트롤의 높이 변경
+     * 
+     */
+    public class ColumnGridPanel : System.Windows.Forms.Panel
     {
-        // 현재 컬럼 개수
+
+        /*
+         *********************************************************
+         *                     변수 선언부
+         *********************************************************
+         */
         int ColNum = 1;
 
         const int INVISIBLE = -1000000000;
@@ -29,12 +45,8 @@ namespace AdjustableWindows
         bool colChanged = true;
         bool resized = false;
 
-        startIndexAndEndIndex removedIndex = new startIndexAndEndIndex(0,0);
+        startIndexAndEndIndex removedIndex = new startIndexAndEndIndex(0, 0);
 
-        /*
-         * ********************************************************** 구조체 선언부 **********************************************************
-         * 
-         */
         private struct indexAndRemain
         {
             public int index, remain;
@@ -56,45 +68,36 @@ namespace AdjustableWindows
                 this.end = end;
             }
         }
-        /*
-         ********************************************************** 구조체 선언 끝 ********************************************************** 
-         */
+
+
+    /*
+     **************************************************** 변수선언부 끝
+     */
+
 
         /*
-         ********************************************************** Form init() ************************************************************
+         * Constructor
          */
-        public AdjustableForm()
+        public ColumnGridPanel() 
+            : base() 
         {
-            InitializeComponent();
+            this.AutoScroll = true;
 
-            // 더블 버퍼링 설정
-            this.DoubleBuffered = true;
+            this.SizeChanged += panView_SizeChanged;
+            this.Scroll += panView_ScrollChanged;
+            this.MouseWheel += panView_WheelChanged;
 
-            // 컨트롤 생성후 넣는 부분
-            for (int i = 0; i < ITEMS; i++)
-            {
-                Button SampleData = new Button();
-                SampleData.Text = (i + 1).ToString();
-                SampleData.Margin = new Padding(10);
-                SampleData.Location = new Point(0, INVISIBLE);
-                panView.Controls.Add(SampleData);
-
-            }
-
-            // AutoScroll 설정
-            panView.AutoScroll = true;
-            cbmCol.Text = ColNum.ToString();
         }
 
         /*
-         ********************************************************** 이벤트 리스너 **********************************************************
+         ******************************************************************
+         *                  이벤트 핸들러
+         ******************************************************************
          */
-        private void clickedButton(Object sender, EventArgs e)
-        {
-            //removeAllControls((Panel)((Button)sender).Parent);
-        }
+        
 
-        private void LocationRefresh(Panel parent , int Col)
+        // 행변화 Listener
+        private void LocationRefresh(Panel parent, int Col)
         {
             colChanged = true;
 
@@ -107,7 +110,8 @@ namespace AdjustableWindows
             colChanged = false;
         }
 
-        private void SizeChangeLocationRefresh(Panel parent , int Col)
+
+        private void SizeChangeLocationRefresh(Panel parent, int Col)
         {
             resized = true;
             if (colChanged == false && scrolled == false)
@@ -118,7 +122,7 @@ namespace AdjustableWindows
             resized = false;
         }
 
-        private void scrollChangeLocationRefresh(Panel parent, int Col,int scrollMove)
+        private void scrollChangeLocationRefresh(Panel parent, int Col, int scrollMove)
         {
             scrolled = true;
             if (resized == false && colChanged == false)
@@ -129,6 +133,7 @@ namespace AdjustableWindows
             scrolled = false;
         }
 
+        
         private int calculateEntirePanel(Panel parent, int Col)
         {
             int entirePanel;
@@ -249,7 +254,7 @@ namespace AdjustableWindows
         /*
          ********************************************************** 다시 그리는 코어 함수 **********************************************************
          */
-        private void reArrangeControls(Panel parent,int Col,int widthUnit,int heightUnit,int curIndex,int curRemain,int maxCtrInDisplay) 
+        private void reArrangeControls(Panel parent, int Col, int widthUnit, int heightUnit, int curIndex, int curRemain, int maxCtrInDisplay)
         {
             int location_y = -curRemain;
             int location_x = 0;
@@ -266,7 +271,7 @@ namespace AdjustableWindows
 
                 SubItem.Width = widthUnit - (SubItem.Margin.Left * 2);
                 SubItem.Height = heightUnit - (SubItem.Margin.Bottom * 2);
-                
+
                 if (j < Col - 1)
                 {
                     location_x += widthUnit;
@@ -282,36 +287,44 @@ namespace AdjustableWindows
                 SubItem.Location = new Point(location_x, location_y);
             }
 
-            
+
         }
-    
-        // cbm열 변경시 호출되는 이벤트
-        private void cbmCol_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            ComboBox cmb = (ComboBox)sender;
-
-            if (cmb.SelectedIndex == -1)
-                return;
-
-            ColNum = Convert.ToInt32(cmb.SelectedItem);
-
-            LocationRefresh(panView, ColNum);
-        }
-
         // 사이즈 변경할시 호출되는 이벤트
         private void panView_SizeChanged(object sender, EventArgs e)
         {
-            SizeChangeLocationRefresh((Panel)sender, ColNum);
+            SizeChangeLocationRefresh(this, ColNum);
         }
 
         private void panView_ScrollChanged(object sender, ScrollEventArgs e)
         {
-            scrollChangeLocationRefresh((Panel)sender, ColNum,e.NewValue-e.OldValue);
+            scrollChangeLocationRefresh(this, ColNum,e.NewValue-e.OldValue);
         }
 
         private void panView_WheelChanged(object sender, MouseEventArgs e)
         {
-            scrollChangeLocationRefresh((Panel)sender, ColNum,Math.Abs(e.Delta));
+            scrollChangeLocationRefresh(this, ColNum,Math.Abs(e.Delta));
+        }
+        
+        //  ************************************************************************************
+        //  public 함수 선언 부분
+        public void col_Changed(int col)
+        {
+            ColNum = col;
+            LocationRefresh(this, col);
+        }
+
+        public void input_Control(Control item)
+        {
+            item.Margin = new Padding(10);
+            item.Location = new Point(0, INVISIBLE);
+            this.Controls.Add(item);
+        }
+
+        public void setControlsHeight(int height)
+        {
+            this.defaultHeight = height;
+
+            LocationRefresh(this, col);
         }
     }
 }
